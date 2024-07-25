@@ -12,7 +12,7 @@ class Login{
 
   Login(this.usuario, this.password,this.tecnico);
 }
-  
+
 class SocioDeNegocio {
   final String id;
   final String value;
@@ -26,13 +26,13 @@ class SocioDeNegocio {
 }
 
 class Fincas{
-    final String idFinca;
+    final int idFinca;
     final String finca;
     
   Fincas(this.idFinca, this.finca,);
    factory Fincas.fromMap(Map<String, dynamic> map) {
     return Fincas(
-      map['idFinca'] as String,
+      map['idFinca'] as int,
       map['finca'] as String,
     );
   }

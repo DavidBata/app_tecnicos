@@ -30,18 +30,24 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.17.0
-# flutter_dynamic_calculator: ^1.0.0
+  intl: ^0.18.1
+  provider: ^6.0.0
+  http: ^0.13.3
+  image_picker: ^1.1.1
+  speech_to_text: ^6.6.1
   postgres: ^2.4.3
-#  http: ^0.13.
-# sqflite: any
+  sqflite: ^2.0.0
+  sqflite_common_ffi: ^2.2.2+2
   path: any
-
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  flutter_background_service: any
+  flutter_local_notifications: ^17.2.1
+  flutter_background_service_android: ^5.0.0
+  flutter_background_service_ios: ^4.0.0
+  connectivity_plus: ^2.3.1
+  permission_handler: ^10.2.0
   cupertino_icons: ^1.0.2
   mask_text_input_formatter: ^2.8.0
+
 
 dev_dependencies:
   flutter_test:

@@ -1,283 +1,280 @@
+// import 'dart:html';
+
+import 'package:counter_app/widgets/peticione_api.dart';
 import 'package:flutter/material.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:counter_app/local_database.dart';
+import 'package:sqflite/sqflite.dart';
 
-void main() => runApp( MyApp());
-
-class MyApp extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: RegisterScreen(),
-    );
-  }
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
-class RegisterScreen extends StatefulWidget {
-  static const String routeName = '/register';
-
-  const RegisterScreen({Key? key}) : super(key: key);
-
-  @override
-  _RegisterScreenState createState() => _RegisterScreenState();
-}
-
-  
-  
-  class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscureText = true;
-    var Cimask = MaskTextInputFormatter(mask: '########', filter: { "#": RegExp(r'[4-9]') });
-   // var Usermask = MaskTextInputFormatter(mask: '########', filter: { "#": RegExp(r'[1-9]') });
+  final _emailController = TextEditingController();
+  final _adempiereUserController = TextEditingController();
+  final con_api = Peticiones();
 
-
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Scaffold(
-      body: SizedBox(
-        width: double.infinity,
-        height: double.infinity,
-        child: Stack(
+  void _showLoadingDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        content: Row(
           children: [
-            const SizedBox(height: 8),
-            const Divider(color: Colors.black),
-            _cajaRoja(size),
-            _logo(),
-            _registerForm(context),
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("Registrando usuario..."),
           ],
         ),
-      ),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 253, 97, 97),
-        title: const Text('Registro'),
-        elevation: 8,
-      ),
-    );
+      );
+    },
+  );
+}
+
+void _hideLoadingDialog(BuildContext context) {
+  Navigator.of(context).pop();
+}
+
+Future<void> _registerUser() async {
+  if (_formKey.currentState!.validate()) {
+    // Mostrar el diálogo de carga
+    _showLoadingDialog(context);
+    try {
+      // Get the database instance
+      final db = await LocalDataBase.instance.database;
+      List<dynamic> user_id = await UserPrinciPal(_adempiereUserController.text);
+      bool llenado = await LlenadoTablasMaestra(_adempiereUserController.text);
+      if (llenado) {
+        await db.insert('ad_user', {
+          'username': _usernameController.text,
+          'password': _passwordController.text,
+          'email': _emailController.text,
+          'adempiere_user': _adempiereUserController.text,
+          'ad_user_id': user_id[0]['ad_user_id'], 
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        
+
+        // Ocultar el diálogo de carga
+        _hideLoadingDialog(context);
+
+        // Show a success message
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User registered successfully!')),
+        );
+
+        // Optionally, you can navigate to another page or clear the form
+        _formKey.currentState!.reset();
+      } else {
+        print("error en llenado de tablas");
+
+        // Ocultar el diálogo de carga
+        _hideLoadingDialog(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error en llenado de tablas')),
+        );
+        _formKey.currentState!.reset();
+      }
+    } catch (error) {
+      // Ocultar el diálogo de carga en caso de error
+      _hideLoadingDialog(context);
+      // Manejar el error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al registrar usuario')),
+      );
+      print("Error: $error");
+    }
+  }
+}
+
+
+
+  Future<bool>InsertLocal(String tabla, List<dynamic> objeto_iterable) async {
+    final db = await LocalDataBase.instance.database;
+    for(var x in objeto_iterable){
+        await db.insert(tabla,x as Map<String, Object?>, conflictAlgorithm: ConflictAlgorithm.replace,);
+    }
+    return true;
   }
 
-  SingleChildScrollView _registerForm(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 130),
-          Container(
-            padding: const EdgeInsets.all(20),
-            margin: const EdgeInsets.symmetric(horizontal: 30),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 30,
-                  offset: Offset(5, 7),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 5),
-                Text(
-                  'Registro',
-                  style: Theme.of(context).textTheme.headline6,
-                ),
-                const SizedBox(height: 20),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      _buildTextField1(
-                        labelText: 'Usuario',
-                        prefixIcon: Icons.person,
-                        obscureText: false,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField2(
-                        
-                        labelText: 'Cedula',
-                        prefixIcon: Icons.credit_card_outlined,
-                        obscureText: false,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildPasswordField(),
-                      const SizedBox(height: 20),
-                      MaterialButton(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        disabledColor: Colors.grey,
-                        color: Colors.red,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 80,
-                            vertical: 15,
-                          ),
-                          child: const Text(
-                            'Registrarse',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        onPressed: () {
-                    // Validar el formulario antes de realizar la acción
-                    if (_formKey.currentState?.validate() ?? false) {
-                      // Puedes añadir lógica para manejar el botón aquí
-                    } else {
-                      // Muestra una alerta si hay campos vacíos
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('Alerta'),
-                            content: const Text('Por favor, llene todos los campos del Formulario correctamente'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          );
-                        }
-                      );
-                    }
-                   }
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 50),
-        ],
-      ),
-    );
+  Future<bool>LlenadoTablasMaestra(String user_adempiere) async {
+    List<dynamic> user_principal= await UserPrinciPal(user_adempiere);
+    final db = await LocalDataBase.instance.database;
+    if  (user_principal.isNotEmpty){
+      int ad_user_id = user_principal[0]['ad_user_id'];
+      var x= true;
+      print("ID DE USUARIO $ad_user_id");
+      
+      // INSERTAR PRODUCTORES
+      List<dynamic> productores = await SocioNegocioProductores(ad_user_id);
+      await InsertLocal('c_bpartner',productores);
+
+      // PODUCTOS
+      List<dynamic> products =  await con_api.get_product();
+      await InsertLocal('m_product',products);
+      // productos para la finca
+      List<dynamic> products_is_finca =  await con_api.get_product_fincas();
+      await InsertLocal('m_product',products_is_finca);
+      // PODUCTOS
+
+
+      // INSERTAR FINCAS
+      List<dynamic> fincas =  await con_api.fincas_socio_negocio(ad_user_id);
+      await InsertLocal('farms_ranches',fincas);
+
+      // INSERTAR CiCLOS
+      List<dynamic> ciclos =  await con_api.cliclos_anuales();
+      await InsertLocal('fap_plantingcycle',ciclos);
+      List<dynamic> ciclosIds = ciclos.map((x) => x['fap_plantingcycle_id']).toList();
+      String ciclo_ids = ciclosIds.join(', '); //Lista de ciclos
+      
+
+      // INSERTAR lotes
+      List<dynamic> farmIds = fincas.map((x) => x['fap_farm_id']).toList();
+      String farmIdsString = farmIds.join(', ');
+      List<dynamic> lotes_fincas =  await con_api.lotes_fincas(farmIdsString);
+      await InsertLocal('fap_farmdivision',lotes_fincas);
+
+      // Sub Lotes 
+      List<dynamic> lotesIds = lotes_fincas.map((x) => x['fap_farmdivision_id']).toList();
+      String framdiviChills = lotesIds.join(', ');
+      List<dynamic>sublotes =  await con_api.sub_lotes(framdiviChills);
+      await InsertLocal('fap_farmdivisionchild', sublotes);
+      
+      // CULTIVO -----------
+      List<dynamic> partnerIds = productores.map((x) => x['c_bpartner_id']).toList();
+      String partner_ids = partnerIds.join(', ');
+      List<dynamic> etapa_cultivo =  await con_api.cultivo(farmIdsString,ciclo_ids,farmIdsString,partner_ids);
+      await InsertLocal('fap_farming', etapa_cultivo);
+      // CULTIVO 
+
+
+      // ETAPA RUBROS
+      List<dynamic> m_productids = etapa_cultivo.map((x) => x['m_product_id']).toList();
+      String m_product_ids = m_productids.join(', ');
+      List<dynamic> etapa_rubro  =  await con_api.get_etapa_rubro(m_product_ids);
+      await InsertLocal('fap_farmingstage', etapa_rubro);
+      // ETAPA RUBROS
+
+      // EVENTOS DE CULTIVO 
+      List<dynamic> evento_cultivo =  await con_api.get_evento_cultivo();
+      await InsertLocal('fap_symptomatology', evento_cultivo);
+      // EVENTOS DE CULTIVO 
+
+    // PRODUCTOS EN ALMACEN
+    List<dynamic> pro_almacenes =  await con_api.get_product_almacen();
+    await InsertLocal('m_warehouse', pro_almacenes);
+    // PRODUCTOS EN ALMACEN
+
+
+    // CATEGORIA DE PRODUCTO PARA ALMACEN
+    List<dynamic> m_product_category =  await con_api.get_categoria_productos();
+    await InsertLocal('m_product_category', m_product_category);
+    // CATEGORIA DE PRODUCTO PARA ALMACEN
+
+
+
+    // Tipo de Observaciones
+    List<dynamic>tipo_observacion =  await con_api.get_tipo_observacion();
+    await InsertLocal('fap_observationtype', tipo_observacion);
+    // Tipo de Observaciones
+
+
+      
+      return x;
+    }else{
+      return false;
+    }
   }
 
-  Widget _buildTextField1({
-    required String labelText,
-    IconData? prefixIcon,
-    bool? obscureText,
-  }) {
-    return TextFormField(
-      //inputFormatters: [Usermask],
-      obscureText: obscureText ?? false,
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.red, width: 2),
-        ),
-        labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-      ),
-      validator: (value) {
-      if (value == null || value.isEmpty) {
-          return 'Campo vacío';
-        }
-        if (value.length < 4) {
-          return 'Caracteres insuficientes';
-        }
-        return null;
-     },
-    );
+  Future<List>UserPrinciPal(String user_adempiere) async {
+    List<dynamic>data_user_adempiere =  await con_api.user_adempiere(user_adempiere);
+    return data_user_adempiere;
   }
-  Widget _buildTextField2({
-    required String labelText,
-    IconData? prefixIcon,
-    bool? obscureText,
-  }) {
-    return TextFormField(
-      inputFormatters: [Cimask],
-      keyboardType : TextInputType.number,
-      obscureText: obscureText ?? false,
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.red, width: 2),
-        ),
-        labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Campo vacío';
-        }
-        if (value.length < 4) {
-          return 'Caracteres insuficientes';
-        }
-        return null;
-      },
-    );
+
+  Future<List>SocioNegocioProductores(int ad_user_id) async {
+    List<dynamic>data_user_adempiere =  await con_api.data_user_id(ad_user_id);
+    return data_user_adempiere;
   }
   
 
-  Widget _buildPasswordField() {
-    return TextFormField(
-      obscureText: _obscureText,
-      controller: _passwordController,
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.red, width: 2),
-        ),
-        labelText: 'Contraseña',
-        prefixIcon: const Icon(Icons.lock),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscureText ? Icons.visibility : Icons.visibility_off,
-            color: Theme.of(context).primaryColorDark,
-          ),
-          onPressed: () {
-            setState(() {
-              _obscureText = !_obscureText;
-            });
-          },
-        ),
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _emailController.dispose();
+    _adempiereUserController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Register'),
       ),
-      validator: (value) {
-      if (value == null || value.isEmpty) {
-        return 'Campo vacío';
-      }
-     if (value.length  < 6) {
-          return 'Caracteres insuficientes';
-        }
-        return null;
-    },
-    
-    );
-  }
-
-  Container _cajaRoja(Size size) {
-    return Container(
-      color: Colors.red,
-      width: double.infinity,
-      height: size.height * 0.4,
-    );
-  }
-
-  SafeArea _logo() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(top: 30),
-        width: double.infinity,
-        child: const Icon(
-          Icons.person_pin,
-          color: Colors.white,
-          size: 100,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: <Widget>[
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(labelText: 'Username'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a username';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: 'Password'),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a password';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an email';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _adempiereUserController,
+                decoration: InputDecoration(labelText: 'Adempiere User'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an Adempiere user';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _registerUser,
+                child: Text('Register'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-//builder: (context) => const HtScreens(),
